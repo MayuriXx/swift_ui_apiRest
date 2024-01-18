@@ -60,32 +60,49 @@ struct Post: Identifiable, Codable {
 
 struct ContentView: View {
     @StateObject var vm = PostViewModel()
+    @State private var textToSearch = ""
     
-    var body: some View {
-        List(vm.postData) { post in
-            HStack {
-                Text("\(post.userId)")
-                    .padding()
-                    .overlay(Circle().stroke(.blue))
-                
-                VStack(alignment: .leading) {
-                    Text(post.title)
-                        .bold()
-                        .lineLimit(1)
-                    
-                    Text(post.body)
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .lineLimit(2)
+    //inclusive search
+    var filteredData: [Post] {
+            if textToSearch.isEmpty {
+                return vm.postData
+            }
+            
+            return vm.postData.filter { post in
+                textToSearch.split(separator: " ").allSatisfy { string in
+                    post.title.lowercased().contains(string.lowercased())
                 }
             }
         }
-        .onAppear {
-            if vm.postData.isEmpty {
-                Task {
-                    await vm.fetchData()
+    
+    var body: some View {
+        NavigationStack {
+            List(filteredData) { post in
+                HStack {
+                    Text("\(post.userId)")
+                        .padding()
+                        .overlay(Circle().stroke(.blue))
+                    
+                    VStack(alignment: .leading) {
+                        Text(post.title)
+                            .bold()
+                            .lineLimit(1)
+                        
+                        Text(post.body)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .lineLimit(2)
+                    }
                 }
             }
+            .onAppear {
+                if vm.postData.isEmpty {
+                    Task {
+                        await vm.fetchData()
+                    }
+                }
+            }
+            .searchable(text: $textToSearch, prompt: "Search")
         }
     }
 }
